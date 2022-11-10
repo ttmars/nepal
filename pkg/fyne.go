@@ -35,7 +35,7 @@ func MakeApp() fyne.CanvasObject {
 }
 
 func MakeOperate() fyne.CanvasObject {
-	hostLabel := widget.NewLabel("链接包含")
+	hostLabel := widget.NewLabel("过滤链接")
 	hostEntry := widget.NewEntry()
 	c1 := container.NewBorder(nil,nil,hostLabel,nil,hostEntry)
 
@@ -101,8 +101,8 @@ func MakeListLabel() fyne.CanvasObject {
 	listLabel7 := widget.NewLabelWithStyle("方法", fyne.TextAlignLeading, fyne.TextStyle{Bold:true})
 	listLabel3 := widget.NewLabelWithStyle("状态码", fyne.TextAlignLeading, fyne.TextStyle{Bold:true})
 	listLabel4 := widget.NewHyperlink("大小排序", nil)
-	listLabel5 := widget.NewLabel("")
-	listLabel6 := widget.NewLabel("")
+	listLabel5 := widget.NewLabel("预览")
+	listLabel6 := widget.NewLabel("下载")
 	listLabel4.OnTapped = func() {
 		if SortFlag {
 			sort.Slice(Data, func(i, j int) bool {

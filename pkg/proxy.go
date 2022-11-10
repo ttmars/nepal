@@ -102,7 +102,8 @@ func HandleResp(resp *http.Response) *http.Response  {
 	}else {
 		size = fmt.Sprintf("%.2fM", float64(lb)/1048576)
 	}
-	Data = append(Data, Item{URI: url, ContentType: contentType, Method: method, Size: size, SizeInt: lb, StatusCode: strconv.Itoa(resp.StatusCode), CacheName: fileName})
+	//Data = append(Data, Item{URI: url, ContentType: contentType, Method: method, Size: size, SizeInt: lb, StatusCode: strconv.Itoa(resp.StatusCode), CacheName: fileName})
+	Data = append([]Item{{URI: url, ContentType: contentType, Method: method, Size: size, SizeInt: lb, StatusCode: strconv.Itoa(resp.StatusCode), CacheName: fileName}}, Data...)
 	List.Refresh()
 	return resp
 }
