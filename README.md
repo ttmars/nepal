@@ -16,5 +16,7 @@ FyneProxy是一个http/https代理工具，可用于抓包分析、资源下载�
 fyne package -os windows -icon logo.png
 
 ### 下载
+[https://github.com/ttmars/nepal/releases](https://github.com/ttmars/nepal/releases)
 
 ### 效果图
+![image](https://raw.githubusercontent.com/ttmars/image/master/github/fyneProxy.png)
