@@ -3,6 +3,7 @@ package pkg
 import (
 	"bytes"
 	"fmt"
+	"fyne.io/fyne/v2"
 	"github.com/ttmars/goproxy"
 	"golang.org/x/sys/windows/registry"
 	"io"
@@ -17,18 +18,19 @@ import (
 	"strings"
 )
 
-func PrintErr(err error)  {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 var proxyPort = "7777"
 var Proxy *goproxy.ProxyHttpServer
-//var CachePath = "C:\\Users\\lee\\Desktop\\cache"		// 缓存路径
-var CachePath = os.TempDir() + "\\nepal"
-var DownloadPath = "C:\\Users\\lee\\Desktop\\download"		// 下载路径
-func init()  {
+var CachePath string
+var DownloadPath string
+
+// InitPreferences 初始化Preferences变量
+func InitPreferences(a fyne.App)  {
+	if _,err := os.Stat(a.Preferences().String("downloadPath"));err != nil {
+		curDir,_ := os.Getwd()
+		a.Preferences().SetString("downloadPath", curDir + "\\download")
+	}
+	DownloadPath = a.Preferences().String("downloadPath")
+	CachePath = os.TempDir() + "\\nepal"
 	if _,err := os.Stat(CachePath);err != nil {
 		os.MkdirAll(CachePath, 0755)
 	}
@@ -39,7 +41,6 @@ func init()  {
 
 func OpenProxy() {
 	Proxy = goproxy.NewProxyHttpServer()
-
 	Proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm) // 设置https请求截取
 	Proxy.CertStore = NewCertStorage() //设置storage
 	Proxy.Verbose = false
@@ -51,7 +52,7 @@ func OpenProxy() {
 }
 
 func SetResp(host string, typ string, method string, code string)  {
-	Proxy.ClearRespHandlers()
+	Proxy.ClearRespHandlers()		// 清空条件调用链，可以动态设置筛选条件;源码中未实现这个方法，自行fork添加！！！
 	Proxy.OnResponse(RespCond(host,typ, method, code)).DoFunc(func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 		return HandleResp(resp)
 	})

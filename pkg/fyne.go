@@ -16,6 +16,7 @@ import (
 var List *widget.List
 var W fyne.Window
 var SortFlag bool
+var typSelect,methodSelect,codeSelect *widget.Select
 
 type Item struct {
 	URI string
@@ -39,8 +40,7 @@ func MakeOperate() fyne.CanvasObject {
 	c1 := container.NewBorder(nil,nil,hostLabel,nil,hostEntry)
 
 	typLabel := widget.NewLabel("过滤类型")
-	typSelect := widget.NewSelect([]string{"all", "video", "audio", "image", "text", "application"}, func(value string) {
-		//log.Println("Select set to", value)
+	typSelect = widget.NewSelect([]string{"all", "video", "audio", "image", "text", "application"}, func(value string) {
 	})
 	typSelect.SetSelected("all")
 	c2 := container.NewBorder(nil,nil,typLabel,nil,typSelect)
@@ -61,24 +61,33 @@ func MakeOperate() fyne.CanvasObject {
 	c3 := container.NewGridWithColumns(3, c1,c2,container.NewGridWithColumns(2,switchProxy,certInstall))
 
 	methodLabel := widget.NewLabel("过滤方法")
-	methodSelect := widget.NewSelect([]string{"all", http.MethodGet, http.MethodPost, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}, func(value string) {
-		//log.Println("Select set to", value)
+	methodSelect = widget.NewSelect([]string{"all", http.MethodGet, http.MethodPost, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}, func(value string) {
 	})
 	methodSelect.SetSelected("all")
 	c4 := container.NewBorder(nil,nil,methodLabel,nil,methodSelect)
 
 	codeLabel := widget.NewLabel("过滤code")
-	codeSelect := widget.NewSelect([]string{"all", "1xx", "2xx", "3xx", "4xx", "5xx"}, func(value string) {
-		//log.Println("Select set to", value)
+	codeSelect = widget.NewSelect([]string{"all", "1xx", "2xx", "3xx", "4xx", "5xx"}, func(value string) {
 	})
 	codeSelect.SetSelected("all")
 	c5 := container.NewBorder(nil,nil,codeLabel,nil,codeSelect)
 
-	setCondButton := widget.NewButton("重新过滤", func() {
+	setCondButton := widget.NewButton("清空列表", func() {
 		Data = Data[0:0]
 		List.Refresh()
 		SetResp(hostEntry.Text, typSelect.Selected, methodSelect.Selected, codeSelect.Selected)
 	})
+
+	// 动态设置过滤条件
+	typSelect.OnChanged = func(value string) {
+		SetResp(hostEntry.Text, value, methodSelect.Selected, codeSelect.Selected)
+	}
+	methodSelect.OnChanged = func(value string) {
+		SetResp(hostEntry.Text, typSelect.Selected, value, codeSelect.Selected)
+	}
+	codeSelect.OnChanged = func(value string) {
+		SetResp(hostEntry.Text, typSelect.Selected, methodSelect.Selected, value)
+	}
 
 	c6 := container.NewGridWithColumns(3, c4,c5,setCondButton)
 
@@ -116,9 +125,6 @@ func MakeListLabel() fyne.CanvasObject {
 		}
 	}
 
-	//c1 := container.NewGridWithColumns(5, listLabel7, listLabel3,listLabel4, listLabel5, listLabel6)
-	//c2 := container.NewGridWithColumns(2, listLabel2, c1)
-	//c := container.NewGridWithColumns(2, listLabel1, c2)
 	c1 := container.NewGridWithColumns(6, listLabel2, listLabel7, listLabel3,listLabel4, listLabel5, listLabel6)
 	c := container.NewGridWithColumns(2, listLabel1, c1)
 	return c
@@ -139,9 +145,6 @@ func MakeList() fyne.CanvasObject {
 			previewLabel := widget.NewHyperlink("预览", nil)
 			downloadLink := widget.NewHyperlink("下载", nil)
 
-			//c1 := container.NewGridWithColumns(5, MethodLabel, StatusCodeLabel,SizeLabel, previewLabel, downloadLink)
-			//c2 := container.NewGridWithColumns(2, ContentTypeLabel, c1)
-			//c := container.NewGridWithColumns(2, urlLabel, c2)
 			c1 := container.NewGridWithColumns(6, ContentTypeLabel,MethodLabel, StatusCodeLabel,SizeLabel, previewLabel, downloadLink)
 			c := container.NewGridWithColumns(2, urlLabel, c1)
 			return c
