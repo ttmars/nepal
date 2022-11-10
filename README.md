@@ -1,2 +1,1 @@
-# nepal
-http hijack
+fyne package -os windows -icon logo.png
