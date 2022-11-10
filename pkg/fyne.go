@@ -15,7 +15,7 @@ import (
 
 var List *widget.List
 var W fyne.Window
-var SortFlag bool
+var SortFlag = true
 var typSelect,methodSelect,codeSelect *widget.Select
 
 type Item struct {

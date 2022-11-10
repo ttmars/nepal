@@ -11,7 +11,7 @@ import (
 
 func main()  {
 	myApp := app.NewWithID("go")						// 创建APP
-	myWindow := myApp.NewWindow("HttpHijack")			// 创建窗口
+	myWindow := myApp.NewWindow("FyneProxy")			// 创建窗口
 	//myApp.SetIcon(myTheme.ResourceLogoJpg)			    	// 设置logo
 	myApp.SetIcon(theme.FyneLogo())							// 默认logo
 	myApp.Settings().SetTheme(&myTheme.MyTheme{})			// 设置APP主题，嵌入字体，解决乱码
