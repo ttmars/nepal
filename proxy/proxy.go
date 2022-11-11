@@ -6,15 +6,14 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/ttmars/goproxy"
+	"github.com/ttmars/tool"
 	"golang.org/x/sys/windows/registry"
 	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 var DefaultProxy = NewNepalProxy()
@@ -90,7 +89,7 @@ func (NP *NepalProxy)HandleResp(host, typ, method, code string)  {
 			suffix = "." + strings.Split(strings.Split(contentType, ";")[0], "/")[1]
 		}
 
-		fileName := GetRandomString2(6) + suffix
+		fileName := tool.GetRandomString2(6) + suffix
 		b,err := io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Println("readall err")
@@ -186,11 +185,4 @@ func editReg(enable, proxy string) bool {
 	}
 
 	return true
-}
-
-func GetRandomString2(n int) string {
-	rand.Seed(time.Now().UnixNano())
-	randBytes := make([]byte, n/2)
-	rand.Read(randBytes)
-	return fmt.Sprintf("%x", randBytes)
 }
