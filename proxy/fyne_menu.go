@@ -1,4 +1,4 @@
-package pkg
+package proxy
 
 import (
 	"fyne.io/fyne/v2"
@@ -16,7 +16,12 @@ func MakeMyMenu(a fyne.App, w fyne.Window) *fyne.MainMenu {
 		cw.CenterOnScreen()
 
 		savePath := widget.NewEntry()
-		savePath.SetText(a.Preferences().String("downloadPath"))
+		p := a.Preferences().String("downloadPath")
+		if _,err := os.Stat(p); err == nil {
+			savePath.SetText(p)
+		}else{
+			savePath.SetText(DefaultProxy.DownloadPath)
+		}
 
 		form := &widget.Form{
 			SubmitText: "确定",
@@ -25,13 +30,12 @@ func MakeMyMenu(a fyne.App, w fyne.Window) *fyne.MainMenu {
 				{Text: "下载路径", Widget: savePath, HintText: "文件保存路径"},
 			},
 			OnSubmit: func() {
-				if _,err := os.Stat(savePath.Text);err != nil {
-					return
+				if _,err := os.Stat(savePath.Text);err == nil {
+					a.Preferences().SetString("downloadPath", strings.TrimRight(savePath.Text, "\\"))
+					DefaultProxy.DownloadPath = a.Preferences().String("downloadPath")
+					os.MkdirAll(DefaultProxy.DownloadPath, 0755)
+					cw.Close()
 				}
-				a.Preferences().SetString("downloadPath", strings.TrimRight(savePath.Text, "\\"))
-				DownloadPath = a.Preferences().String("downloadPath")
-				os.MkdirAll(DownloadPath, 0755)
-				cw.Close()
 			},
 			OnCancel: func() {
 				cw.Close()

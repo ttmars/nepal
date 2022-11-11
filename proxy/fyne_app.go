@@ -1,12 +1,15 @@
-package pkg
+package proxy
 
 import (
 	"fmt"
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"io"
+	"nepal/myTheme"
 	"net/http"
 	"os"
 	"sort"
@@ -14,10 +17,12 @@ import (
 )
 
 var List *widget.List
-var W fyne.Window
 var SortFlag = true
 var typSelect,methodSelect,codeSelect *widget.Select
+var App fyne.App
+var Window fyne.Window
 
+var Data []Item
 type Item struct {
 	URI string
 	ContentType string
@@ -28,10 +33,34 @@ type Item struct {
 	CacheName string
 }
 
-var Data []Item
+func RunApp()  {
+	App = app.NewWithID("nepal")           			// 创建APP
+	Window = App.NewWindow("FyneProxy") 			// 创建窗口
+	//myApp.SetIcon(myTheme.ResourceLogoJpg)			// 设置logo
+	App.SetIcon(theme.FyneLogo())               		// 默认logo
+	App.Settings().SetTheme(&myTheme.MyTheme{}) 		// 设置APP主题，嵌入字体，解决乱码
+	Window.Resize(fyne.NewSize(1200,800))       	// 设置窗口大小
+	Window.CenterOnScreen()                     		// 窗口居中显示
+	Window.SetMaster()                          		// 设置为主窗口
+
+	Window.SetMainMenu(MakeMyMenu(App, Window))			// 加载菜单
+	Window.SetContent(MakeApp())                		// 加载主界面
+
+	defer DefaultProxy.ClearProxyData()					// 注册清理
+	InitSetting()						    			// 初始化设置
+
+	Window.ShowAndRun()
+}
+
+func InitSetting()  {
+	downloadPath := App.Preferences().String("downloadPath")
+	if _,err := os.Stat(downloadPath); err == nil {
+		DefaultProxy.DownloadPath = downloadPath
+	}
+}
 
 func MakeApp() fyne.CanvasObject {
-	return container.NewBorder(container.NewVBox(MakeOperate(), MakeListLabel()),nil,nil,nil,MakeList())
+	return container.NewBorder(container.NewVBox(MakeOperate(), MakeListLabel()),nil,nil,nil, MakeList())
 }
 
 func MakeOperate() fyne.CanvasObject {
@@ -43,19 +72,19 @@ func MakeOperate() fyne.CanvasObject {
 	typSelect = widget.NewSelect([]string{"all", "video", "audio", "image", "text", "application"}, func(value string) {
 	})
 	typSelect.SetSelected("all")
-	c2 := container.NewBorder(nil,nil,typLabel,nil,typSelect)
+	c2 := container.NewBorder(nil,nil,typLabel,nil, typSelect)
 
 	switchProxy := widget.NewCheck("开启代理", func(b bool) {
 		if b {
-			SetWinProxy()
+			DefaultProxy.SetWinProxy()
 		}else{
-			UnSetWinProxy()
+			DefaultProxy.UnSetWinProxy()
 		}
 	})
 	switchProxy.SetChecked(true)
 	certInstall := widget.NewHyperlink("安装证书", nil)
-	os.WriteFile(CachePath + "\\" + "ca.crt", CaCert, 0755)
-	certInstall.SetURLFromString("file:///" + CachePath + "\\" + "ca.crt")
+	os.WriteFile(DefaultProxy.CachePath + "\\" + "ca.crt", CaCert, 0755)
+	certInstall.SetURLFromString("file:///" + DefaultProxy.CachePath + "\\" + "ca.crt")
 
 
 	c3 := container.NewGridWithColumns(3, c1,c2,container.NewGridWithColumns(2,switchProxy,certInstall))
@@ -64,29 +93,29 @@ func MakeOperate() fyne.CanvasObject {
 	methodSelect = widget.NewSelect([]string{"all", http.MethodGet, http.MethodPost, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}, func(value string) {
 	})
 	methodSelect.SetSelected("all")
-	c4 := container.NewBorder(nil,nil,methodLabel,nil,methodSelect)
+	c4 := container.NewBorder(nil,nil,methodLabel,nil, methodSelect)
 
 	codeLabel := widget.NewLabel("过滤code")
 	codeSelect = widget.NewSelect([]string{"all", "1xx", "2xx", "3xx", "4xx", "5xx"}, func(value string) {
 	})
 	codeSelect.SetSelected("all")
-	c5 := container.NewBorder(nil,nil,codeLabel,nil,codeSelect)
+	c5 := container.NewBorder(nil,nil,codeLabel,nil, codeSelect)
 
 	setCondButton := widget.NewButton("清空列表", func() {
 		Data = Data[0:0]
 		List.Refresh()
-		SetResp(hostEntry.Text, typSelect.Selected, methodSelect.Selected, codeSelect.Selected)
+		DefaultProxy.HandleResp(hostEntry.Text, typSelect.Selected, methodSelect.Selected, codeSelect.Selected)
 	})
 
 	// 动态设置过滤条件
 	typSelect.OnChanged = func(value string) {
-		SetResp(hostEntry.Text, value, methodSelect.Selected, codeSelect.Selected)
+		DefaultProxy.HandleResp(hostEntry.Text, value, methodSelect.Selected, codeSelect.Selected)
 	}
 	methodSelect.OnChanged = func(value string) {
-		SetResp(hostEntry.Text, typSelect.Selected, value, codeSelect.Selected)
+		DefaultProxy.HandleResp(hostEntry.Text, typSelect.Selected, value, codeSelect.Selected)
 	}
 	codeSelect.OnChanged = func(value string) {
-		SetResp(hostEntry.Text, typSelect.Selected, methodSelect.Selected, value)
+		DefaultProxy.HandleResp(hostEntry.Text, typSelect.Selected, methodSelect.Selected, value)
 	}
 
 	c6 := container.NewGridWithColumns(3, c4,c5,setCondButton)
@@ -170,25 +199,25 @@ func MakeList() fyne.CanvasObject {
 			}
 			p = d.URI
 			if prefix == "video" || prefix == "audio" {
-				p = fmt.Sprintf("file:///%s\\%s", CachePath,d.CacheName)
+				p = fmt.Sprintf("file:///%s\\%s", DefaultProxy.CachePath,d.CacheName)
 			}
 			c2.Objects[4].(*widget.Hyperlink).SetURLFromString(p)
 			c2.Objects[5].(*widget.Hyperlink).OnTapped = func() {
-				srcPath := CachePath + "\\" + d.CacheName
-				dstPath := DownloadPath + "\\" + d.CacheName
+				srcPath := DefaultProxy.CachePath + "\\" + d.CacheName
+				dstPath := DefaultProxy.DownloadPath + "\\" + d.CacheName
 
 				src,err := os.OpenFile(srcPath, os.O_RDONLY, 0755)
 				if err != nil {
-					dialog.ShowInformation("保存失败!", dstPath, W)
+					dialog.ShowInformation("保存失败!", dstPath, Window)
 					return
 				}
 				dst,err := os.OpenFile(dstPath, os.O_RDWR|os.O_CREATE, 0755)
 				if err != nil {
-					dialog.ShowInformation("保存失败!", dstPath, W)
+					dialog.ShowInformation("保存失败!", dstPath, Window)
 					return
 				}
 				io.Copy(dst, src)
-				dialog.ShowInformation("保存成功!", dstPath, W)
+				dialog.ShowInformation("保存成功!", dstPath, Window)
 			}
 		},
 	)
